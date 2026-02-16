@@ -47,6 +47,15 @@ export const useAuthStore = create((set) => ({
     }
   },
   
+  resetPassword: async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://numo-auth.vercel.app/reset-password', // Deep link - will need to handle this
+    });
+    
+    if (error) throw error;
+    return true;
+  },
+  
   initialize: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
