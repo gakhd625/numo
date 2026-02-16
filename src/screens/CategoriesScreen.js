@@ -9,21 +9,23 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { useAuthStore, useTransactionStore, useThemeStore } from '../store';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
+import CategoryIcon from '../components/CategoryIcon';
 
 const DEFAULT_COLORS = [
   '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6',
   '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#6366F1',
 ];
 
-const DEFAULT_ICONS = [
-  '🍔', '🏠', '🚗', '🎮', '💊', '✈️', '🎬', '📚', '👕', '💰',
-  '🏋️', '☕', '🎵', '🛒', '💼', '🎓', '🏥', '🔧', '🎨', '📱',
-];
+// FontAwesome5 icon names: income = bank accounts; expense = food, transpo, etc.
+const ICONS_INCOME = ['wallet', 'university', 'landmark', 'money-bill-wave', 'piggy-bank', 'credit-card', 'building', 'chart-line'];
+const ICONS_EXPENSE = ['utensils', 'car', 'home', 'gas-pump', 'gamepad', 'pills', 'plane', 'film', 'book', 'tshirt', 'shopping-cart', 'dumbbell', 'coffee', 'music', 'graduation-cap', 'hospital', 'wrench', 'palette', 'mobile-alt'];
+const DEFAULT_ICONS = [...ICONS_INCOME, ...ICONS_EXPENSE];
 
 const GUEST_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -42,11 +44,15 @@ export default function CategoriesScreen() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryType, setCategoryType] = useState('expense'); // 'income' | 'expense'
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLORS[0]);
-  const [selectedIcon, setSelectedIcon] = useState(DEFAULT_ICONS[0]);
+  const [selectedIcon, setSelectedIcon] = useState(ICONS_EXPENSE[0]);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+
+  const incomeCategories = categories.filter((c) => (c.type || 'expense') === 'income');
+  const expenseCategories = categories.filter((c) => (c.type || 'expense') === 'expense');
   
   useEffect(() => {
     if (user && user.id !== GUEST_ID) {
@@ -54,17 +60,19 @@ export default function CategoriesScreen() {
     }
   }, [user]);
   
-  const handleOpenModal = (category = null) => {
+  const handleOpenModal = (category = null, type = 'expense') => {
     if (category) {
       setEditingCategory(category);
+      setCategoryType(category.type || 'expense');
       setName(category.name);
       setSelectedColor(category.color);
-      setSelectedIcon(category.icon);
+      setSelectedIcon(category.icon || ICONS_EXPENSE[0]);
     } else {
       setEditingCategory(null);
+      setCategoryType(type);
       setName('');
       setSelectedColor(DEFAULT_COLORS[0]);
-      setSelectedIcon(DEFAULT_ICONS[0]);
+      setSelectedIcon(type === 'income' ? ICONS_INCOME[0] : ICONS_EXPENSE[0]);
     }
     setModalVisible(true);
   };
@@ -79,6 +87,7 @@ export default function CategoriesScreen() {
     try {
       if (isGuest) {
         addCategoryLocal({
+          type: categoryType,
           name: name.trim(),
           color: selectedColor,
           icon: selectedIcon,
@@ -89,6 +98,7 @@ export default function CategoriesScreen() {
       }
       if (editingCategory) {
         await updateCategory(editingCategory.id, {
+          type: categoryType,
           name: name.trim(),
           color: selectedColor,
           icon: selectedIcon,
@@ -96,6 +106,7 @@ export default function CategoriesScreen() {
       } else {
         await addCategory({
           user_id: user.id,
+          type: categoryType,
           name: name.trim(),
           color: selectedColor,
           icon: selectedIcon,
@@ -112,9 +123,10 @@ export default function CategoriesScreen() {
 
   const resetModal = () => {
     setEditingCategory(null);
+    setCategoryType('expense');
     setName('');
     setSelectedColor(DEFAULT_COLORS[0]);
-    setSelectedIcon(DEFAULT_ICONS[0]);
+    setSelectedIcon(ICONS_EXPENSE[0]);
   };
   
   const handleDelete = (category) => {
@@ -150,8 +162,8 @@ export default function CategoriesScreen() {
       ]}
     >
       <View style={styles.categoryLeft}>
-        <View style={[styles.categoryIcon, { backgroundColor: item.color }]}>
-          <Text style={styles.categoryIconText}>{item.icon}</Text>
+        <View style={[styles.categoryIconWrap, { backgroundColor: item.color }]}>
+          <CategoryIcon name={item.icon} size={22} color="#FFF" />
         </View>
         <Text style={[styles.categoryName, { color: theme.text }]}>
           {item.name}
@@ -182,6 +194,31 @@ export default function CategoriesScreen() {
       </View>
     </View>
   );
+
+  const renderSection = (title, data, type) => (
+    <View key={type} style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>{title}</Text>
+        <TouchableOpacity
+          onPress={() => handleOpenModal(null, type)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add-circle-outline" size={22} color={theme.primary} />
+        </TouchableOpacity>
+      </View>
+      {data.length === 0 ? (
+        <Text style={[styles.sectionEmpty, { color: theme.textSecondary }]}>
+          No {type} categories yet
+        </Text>
+      ) : (
+        data.map((item) => (
+          <View key={item.id}>
+            {renderCategory({ item })}
+          </View>
+        ))
+      )}
+    </View>
+  );
   
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -189,7 +226,7 @@ export default function CategoriesScreen() {
         <Text style={[styles.title, { color: theme.text }]}>Categories</Text>
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: theme.primary }]}
-          onPress={() => handleOpenModal()}
+          onPress={() => handleOpenModal(null, 'expense')}
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={24} color="#FFF" />
@@ -200,23 +237,28 @@ export default function CategoriesScreen() {
         <View style={styles.emptyState}>
           <Ionicons name="pricetags-outline" size={64} color={theme.textSecondary} />
           <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
-            No categories yet
+            Income = bank accounts. Expense = food, transpo, etc.
           </Text>
           <TouchableOpacity
-            style={[styles.createButton, { backgroundColor: theme.primary }]}
-            onPress={() => handleOpenModal()}
+            style={[styles.createButton, { backgroundColor: theme.income }]}
+            onPress={() => handleOpenModal(null, 'income')}
             activeOpacity={0.8}
           >
-            <Text style={styles.createButtonText}>Create Category</Text>
+            <Text style={styles.createButtonText}>Add income category</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.createButton, { backgroundColor: theme.primary, marginTop: spacing.sm }]}
+            onPress={() => handleOpenModal(null, 'expense')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.createButtonText}>Add expense category</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <FlatList
-          data={categories}
-          renderItem={renderCategory}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-        />
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.listContent}>
+          {renderSection('Income (bank accounts)', incomeCategories, 'income')}
+          {renderSection('Expense (food, transpo, etc.)', expenseCategories, 'expense')}
+        </ScrollView>
       )}
       
       {/* Add/Edit Modal */}
@@ -252,70 +294,95 @@ export default function CategoriesScreen() {
               </TouchableOpacity>
             </View>
             
-            <View style={styles.modalBody}>
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>Name</Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: theme.background,
-                      color: theme.text,
-                      borderColor: theme.border,
-                    },
-                  ]}
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Category name"
-                  placeholderTextColor={theme.textSecondary}
-                />
-              </View>
-              
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>Color</Text>
-                <View style={styles.colorGrid}>
-                  {DEFAULT_COLORS.map((color) => (
+            <ScrollView style={styles.modalBodyScroll} showsVerticalScrollIndicator={false}>
+              <View style={styles.modalBody}>
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.text }]}>Type</Text>
+                  <View style={styles.typeRow}>
                     <TouchableOpacity
-                      key={color}
                       style={[
-                        styles.colorOption,
-                        { backgroundColor: color },
-                        selectedColor === color && styles.colorOptionSelected,
+                        styles.typeChip,
+                        { borderColor: theme.border, backgroundColor: categoryType === 'income' ? theme.income + '25' : theme.surface },
                       ]}
-                      onPress={() => setSelectedColor(color)}
+                      onPress={() => { setCategoryType('income'); setSelectedIcon(ICONS_INCOME.includes(selectedIcon) ? selectedIcon : ICONS_INCOME[0]); }}
                     >
-                      {selectedColor === color && (
-                        <Ionicons name="checkmark" size={20} color="#FFF" />
-                      )}
+                      <FontAwesome5 name="wallet" size={16} color={categoryType === 'income' ? theme.income : theme.textSecondary} solid />
+                      <Text style={[styles.typeChipText, { color: categoryType === 'income' ? theme.income : theme.textSecondary }]}>Income</Text>
                     </TouchableOpacity>
-                  ))}
+                    <TouchableOpacity
+                      style={[
+                        styles.typeChip,
+                        { borderColor: theme.border, backgroundColor: categoryType === 'expense' ? theme.expense + '25' : theme.surface },
+                      ]}
+                      onPress={() => { setCategoryType('expense'); setSelectedIcon(ICONS_EXPENSE.includes(selectedIcon) ? selectedIcon : ICONS_EXPENSE[0]); }}
+                    >
+                      <FontAwesome5 name="utensils" size={16} color={categoryType === 'expense' ? theme.expense : theme.textSecondary} solid />
+                      <Text style={[styles.typeChipText, { color: categoryType === 'expense' ? theme.expense : theme.textSecondary }]}>Expense</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.text }]}>Name</Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.background,
+                        color: theme.text,
+                        borderColor: theme.border,
+                      },
+                    ]}
+                    value={name}
+                    onChangeText={setName}
+                    placeholder={categoryType === 'income' ? 'e.g. Checking, Salary' : 'e.g. Food, Transport'}
+                    placeholderTextColor={theme.textSecondary}
+                  />
+                </View>
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.text }]}>Color</Text>
+                  <View style={styles.colorGrid}>
+                    {DEFAULT_COLORS.map((color) => (
+                      <TouchableOpacity
+                        key={color}
+                        style={[
+                          styles.colorOption,
+                          { backgroundColor: color },
+                          selectedColor === color && styles.colorOptionSelected,
+                        ]}
+                        onPress={() => setSelectedColor(color)}
+                      >
+                        {selectedColor === color && (
+                          <Ionicons name="checkmark" size={20} color="#FFF" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+                <View style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.text }]}>Icon</Text>
+                  <View style={styles.iconGrid}>
+                    {(categoryType === 'income' ? ICONS_INCOME : ICONS_EXPENSE).map((icon) => (
+                      <TouchableOpacity
+                        key={icon}
+                        style={[
+                          styles.iconOption,
+                          {
+                            backgroundColor:
+                              selectedIcon === icon
+                                ? selectedColor
+                                : theme.background,
+                            borderColor: theme.border,
+                          },
+                        ]}
+                        onPress={() => setSelectedIcon(icon)}
+                      >
+                        <FontAwesome5 name={icon} size={22} color={selectedIcon === icon ? '#FFF' : theme.text} solid />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
               </View>
-              
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>Icon</Text>
-                <View style={styles.iconGrid}>
-                  {DEFAULT_ICONS.map((icon) => (
-                    <TouchableOpacity
-                      key={icon}
-                      style={[
-                        styles.iconOption,
-                        {
-                          backgroundColor:
-                            selectedIcon === icon
-                              ? selectedColor
-                              : theme.background,
-                          borderColor: theme.border,
-                        },
-                      ]}
-                      onPress={() => setSelectedIcon(icon)}
-                    >
-                      <Text style={styles.iconOptionText}>{icon}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </View>
+            </ScrollView>
             
             <TouchableOpacity
               style={[styles.saveButton, theme.shadow]}
@@ -386,15 +453,36 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     flex: 1,
   },
-  categoryIcon: {
+  scroll: {
+    flex: 1,
+  },
+  section: {
+    marginBottom: spacing.xl,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    textTransform: 'uppercase',
+  },
+  sectionEmpty: {
+    fontSize: fontSize.sm,
+    fontStyle: 'italic',
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  categoryIconWrap: {
     width: 48,
     height: 48,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  categoryIconText: {
-    fontSize: 24,
   },
   categoryName: {
     fontSize: fontSize.md,
@@ -449,8 +537,29 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
   },
+  modalBodyScroll: {
+    maxHeight: 320,
+  },
   modalBody: {
     marginBottom: spacing.lg,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  typeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+  },
+  typeChipText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   inputContainer: {
     marginBottom: spacing.lg,
@@ -489,15 +598,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   iconOption: {
-    width: 50,
-    height: 50,
+    width: 48,
+    height: 48,
     borderRadius: borderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-  },
-  iconOptionText: {
-    fontSize: 24,
   },
   saveButton: {
     borderRadius: borderRadius.lg,

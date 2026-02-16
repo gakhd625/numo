@@ -38,8 +38,13 @@ export const useAuthStore = create((set) => ({
   },
   
   signOut: async () => {
-    await supabase.auth.signOut();
+    // Clear app state first so UI switches to Login immediately (for switching users).
     set({ user: null, session: null });
+    try {
+      await supabase.auth.signOut();
+    } catch (_) {
+      // Offline or error: we already cleared state so user can still switch account.
+    }
   },
   
   initialize: async () => {
@@ -194,10 +199,12 @@ export const useTransactionStore = create((set, get) => ({
   /** Guest-only: add category in memory (no Supabase). */
   addCategoryLocal: (category) => {
     const id = 'local-' + Date.now();
+    const withType = { type: 'expense', ...category };
+    if (!withType.type) withType.type = 'expense';
     set((state) => ({
-      categories: [...state.categories, { id, ...category }],
+      categories: [...state.categories, { id, ...withType }],
     }));
-    return { id, ...category };
+    return { id, ...withType };
   },
   
   addCategory: async (category) => {

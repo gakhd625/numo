@@ -10,6 +10,7 @@ import {
 import { SwipeListView } from 'react-native-swipe-list-view';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore, useTransactionStore, useThemeStore } from '../store';
+import CategoryIcon from '../components/CategoryIcon';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 import { format } from 'date-fns';
 
@@ -70,9 +71,11 @@ export default function TransactionsScreen({ navigation }) {
             { backgroundColor: item.categories?.color || theme.primary },
           ]}
         >
-          <Text style={styles.categoryIconText}>
-            {item.categories?.icon || '💰'}
-          </Text>
+          <CategoryIcon
+            name={item.categories?.icon}
+            size={22}
+            color="#FFF"
+          />
         </View>
         <View style={styles.transactionInfo}>
           <Text style={[styles.transactionCategory, { color: theme.text }]}>

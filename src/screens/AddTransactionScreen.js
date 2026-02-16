@@ -8,12 +8,15 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore, useTransactionStore, useThemeStore } from '../store';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 import { format } from 'date-fns';
+import CategoryIcon from '../components/CategoryIcon';
 
 export default function AddTransactionScreen({ navigation }) {
   const { user } = useAuthStore();
@@ -21,18 +24,28 @@ export default function AddTransactionScreen({ navigation }) {
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
   
-  const [type, setType] = useState('expense'); // income or expense
+  const [type, setType] = useState('expense');
   const [amount, setAmount] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const categoriesByType = categories.filter((c) => (c.type || 'expense') === type);
   
   useEffect(() => {
     if (user) {
       fetchCategories(user.id);
     }
   }, [user]);
+
+  useEffect(() => {
+    const selected = categories.find((c) => c.id === categoryId);
+    if (selected && (selected.type || 'expense') !== type) {
+      setCategoryId('');
+    }
+  }, [type, categories, categoryId]);
   
   const handleSubmit = async () => {
     if (!amount || !categoryId) {
@@ -83,6 +96,7 @@ export default function AddTransactionScreen({ navigation }) {
               { borderColor: theme.border },
             ]}
             onPress={() => setType('income')}
+            activeOpacity={0.8}
           >
             <Ionicons
               name="arrow-down"
@@ -109,6 +123,7 @@ export default function AddTransactionScreen({ navigation }) {
               { borderColor: theme.border },
             ]}
             onPress={() => setType('expense')}
+            activeOpacity={0.8}
           >
             <Ionicons
               name="arrow-up"
@@ -147,23 +162,25 @@ export default function AddTransactionScreen({ navigation }) {
         {/* Category */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={[styles.label, { color: theme.text }]}>Category</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Categories')}>
+            <Text style={[styles.label, { color: theme.text }]}>
+              Category ({type === 'income' ? 'bank accounts' : 'spending'})
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Categories')} activeOpacity={0.8}>
               <Text style={[styles.link, { color: theme.primary }]}>
                 Manage
               </Text>
             </TouchableOpacity>
           </View>
           
-          {categories.length === 0 ? (
+          {categoriesByType.length === 0 ? (
             <View style={[styles.emptyCategory, { backgroundColor: theme.surface }]}>
               <Text style={[styles.emptyCategoryText, { color: theme.textSecondary }]}>
-                No categories yet. Create one to continue.
+                No {type} categories yet. Add one in Categories tab.
               </Text>
             </View>
           ) : (
             <View style={styles.categoryGrid}>
-              {categories.map((category) => (
+              {categoriesByType.map((category) => (
                 <TouchableOpacity
                   key={category.id}
                   style={[
@@ -178,8 +195,11 @@ export default function AddTransactionScreen({ navigation }) {
                     },
                   ]}
                   onPress={() => setCategoryId(category.id)}
+                  activeOpacity={0.8}
                 >
-                  <Text style={styles.categoryIcon}>{category.icon}</Text>
+                  <View style={[styles.categoryIconWrap, { backgroundColor: categoryId === category.id ? 'rgba(255,255,255,0.3)' : category.color }]}>
+                    <CategoryIcon name={category.icon} size={20} color={categoryId === category.id ? '#FFF' : theme.text} />
+                  </View>
                   <Text
                     style={[
                       styles.categoryName,
@@ -222,17 +242,32 @@ export default function AddTransactionScreen({ navigation }) {
         {/* Date */}
         <View style={styles.section}>
           <Text style={[styles.label, { color: theme.text }]}>Date</Text>
-          <View
+          <TouchableOpacity
             style={[
               styles.dateContainer,
               { backgroundColor: theme.surface, borderColor: theme.border },
             ]}
+            onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.8}
           >
             <Ionicons name="calendar-outline" size={20} color={theme.primary} />
             <Text style={[styles.dateText, { color: theme.text }]}>
               {format(date, 'MMMM dd, yyyy')}
             </Text>
-          </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(_, selectedDate) => {
+                setShowDatePicker(Platform.OS === 'ios');
+                if (selectedDate) setDate(selectedDate);
+              }}
+              maximumDate={new Date()}
+            />
+          )}
         </View>
       </ScrollView>
       
@@ -357,8 +392,12 @@ const styles = StyleSheet.create({
   categoryItemActive: {
     borderWidth: 0,
   },
-  categoryIcon: {
-    fontSize: 32,
+  categoryIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryName: {
     fontSize: fontSize.xs,
@@ -375,6 +414,7 @@ const styles = StyleSheet.create({
   dateContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.md,
     padding: spacing.md,
     borderRadius: borderRadius.lg,

@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { PieChart, LineChart } from 'react-native-chart-kit';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore, useTransactionStore, useThemeStore } from '../store';
+import CategoryIcon from '../components/CategoryIcon';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
 
@@ -262,9 +263,11 @@ export default function DashboardScreen({ navigation }) {
                       { backgroundColor: transaction.categories?.color || theme.primary },
                     ]}
                   >
-                    <Text style={styles.categoryIconText}>
-                      {transaction.categories?.icon || '💰'}
-                    </Text>
+                    <CategoryIcon
+                      name={transaction.categories?.icon}
+                      size={22}
+                      color="#FFF"
+                    />
                   </View>
                   <View>
                     <Text style={[styles.transactionCategory, { color: theme.text }]}>

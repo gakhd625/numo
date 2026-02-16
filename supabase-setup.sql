@@ -20,16 +20,25 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 -- =====================================================
 -- TABLE: categories
--- Stores user-defined transaction categories
+-- type: 'income' = bank accounts / income sources; 'expense' = spending (food, transpo, etc.)
 -- =====================================================
 CREATE TABLE IF NOT EXISTS categories (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL DEFAULT 'expense' CHECK (type IN ('income', 'expense')),
   name TEXT NOT NULL,
   color TEXT NOT NULL,
   icon TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Add type column if upgrading from an older schema
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'categories' AND column_name = 'type') THEN
+    ALTER TABLE categories ADD COLUMN type TEXT NOT NULL DEFAULT 'expense' CHECK (type IN ('income', 'expense'));
+  END IF;
+END $$;
 
 -- =====================================================
 -- TABLE: transactions
