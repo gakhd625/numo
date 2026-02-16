@@ -12,7 +12,7 @@ npm install
 ```
 
 ### Step 2: Set Up Supabase (2 min)
-
+still can't logout ive been clicking this 
 1. **Create Project**
    - Go to [supabase.com](https://supabase.com)
    - Click "New Project"

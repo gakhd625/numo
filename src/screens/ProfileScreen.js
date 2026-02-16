@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Switch,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,28 +20,11 @@ export default function ProfileScreen() {
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            setLoggingOut(true);
-            try {
-              await signOut();
-              clearData();
-            } catch (err) {
-              Alert.alert('Error', err?.message || 'Logout failed. Try again.');
-            } finally {
-              setLoggingOut(false);
-            }
-          },
-        },
-      ]
-    );
+    setLoggingOut(true);
+    // Clear state first so UI switches to Login immediately (no reliance on Alert callback).
+    signOut();
+    clearData();
+    setLoggingOut(false);
   };
   
   return (
@@ -131,6 +113,7 @@ export default function ProfileScreen() {
           onPress={handleLogout}
           disabled={loggingOut}
           activeOpacity={0.7}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <View style={styles.actionLeft}>
             <View

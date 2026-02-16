@@ -15,11 +15,12 @@ import { useAuthStore } from '../store';
 import { useThemeStore } from '../store';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, route }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  
+  const successMessage = route.params?.message;
+
   const { signIn } = useAuthStore();
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
@@ -46,6 +47,11 @@ export default function LoginScreen({ navigation }) {
       style={[styles.container, { backgroundColor: theme.background }]}
     >
       <View style={styles.content}>
+        {successMessage ? (
+          <View style={[styles.successBanner, { backgroundColor: theme.primary + '20', borderColor: theme.primary }]}>
+            <Text style={[styles.successBannerText, { color: theme.primary }]}>{successMessage}</Text>
+          </View>
+        ) : null}
         <View style={styles.header}>
           <LinearGradient
             colors={[theme.primary, theme.primaryDark]}
@@ -219,5 +225,17 @@ const styles = StyleSheet.create({
   link: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
+  },
+  successBanner: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    marginBottom: spacing.md,
+  },
+  successBannerText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
+    textAlign: 'center',
   },
 });

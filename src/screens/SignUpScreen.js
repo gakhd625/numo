@@ -26,6 +26,8 @@ export default function SignUpScreen({ navigation }) {
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
 
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
+
   const handleSignUp = async () => {
     if (!email?.trim() || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -40,13 +42,14 @@ export default function SignUpScreen({ navigation }) {
       return;
     }
     setLoading(true);
+    setSignUpSuccess(false);
     try {
       await signUp(email.trim(), password);
-      Alert.alert(
-        'Account created',
-        'You can now sign in with your email and password.',
-        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-      );
+      setSignUpSuccess(true);
+      // Show success, then redirect to Login so they can sign in with the new account
+      setTimeout(() => {
+        navigation.replace('Login', { message: 'Account created successfully! Sign in with your new account.' });
+      }, 1800);
     } catch (err) {
       const message = err?.message || 'Sign up failed. Try again.';
       Alert.alert('Error', message);
@@ -66,6 +69,21 @@ export default function SignUpScreen({ navigation }) {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
+          {signUpSuccess ? (
+            <View style={styles.successBlock}>
+              <View style={[styles.successIconWrap, { backgroundColor: theme.primary + '25' }]}>
+                <Ionicons name="checkmark-circle" size={72} color={theme.primary} />
+              </View>
+              <Text style={[styles.successTitle, { color: theme.text }]}>
+                Account created successfully
+              </Text>
+              <Text style={[styles.successSubtitle, { color: theme.textSecondary }]}>
+                Taking you to sign in...
+              </Text>
+              <ActivityIndicator size="small" color={theme.primary} style={styles.successLoader} />
+            </View>
+          ) : (
+            <>
           <View style={styles.header}>
             <LinearGradient
               colors={[theme.primary, theme.primaryDark]}
@@ -188,6 +206,8 @@ export default function SignUpScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           </View>
+            </>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -289,5 +309,32 @@ const styles = StyleSheet.create({
   link: {
     fontSize: fontSize.sm,
     fontWeight: fontWeight.semibold,
+  },
+  successBlock: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.xxl,
+  },
+  successIconWrap: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
+  },
+  successTitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  successSubtitle: {
+    fontSize: fontSize.md,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+  },
+  successLoader: {
+    marginTop: spacing.sm,
   },
 });
