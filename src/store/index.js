@@ -28,18 +28,12 @@ export const useAuthStore = create((set) => ({
       email,
       password,
     });
-    
-    if (error) throw error;
-    
-    // Create profile
-    if (data.user) {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        email: data.user.email,
-      });
-    }
 
-    // Do not set user or session here to prevent automatic login
+    if (error) throw error;
+
+    // Profile is created by DB trigger (handle_new_user) on auth.users insert.
+    // Do not insert from client — RLS would block it and trigger already does it.
+    // Do not set user/session here so user can be sent to Login (e.g. if email confirm is on).
     return data;
   },
   
@@ -185,7 +179,6 @@ export const useTransactionStore = create((set, get) => ({
   
   fetchCategories: async (userId) => {
     if (userId === '00000000-0000-0000-0000-000000000000') {
-      // Guest mode: do not fetch from Supabase
       set({ categories: [] });
       return;
     }
@@ -196,6 +189,15 @@ export const useTransactionStore = create((set, get) => ({
       .order('name');
     if (error) throw error;
     set({ categories: data || [] });
+  },
+
+  /** Guest-only: add category in memory (no Supabase). */
+  addCategoryLocal: (category) => {
+    const id = 'local-' + Date.now();
+    set((state) => ({
+      categories: [...state.categories, { id, ...category }],
+    }));
+    return { id, ...category };
   },
   
   addCategory: async (category) => {
@@ -215,37 +217,51 @@ export const useTransactionStore = create((set, get) => ({
   },
   
   updateCategory: async (id, updates) => {
+    if (String(id).startsWith('local-')) {
+      set((state) => ({
+        categories: state.categories.map((c) =>
+          c.id === id ? { ...c, ...updates } : c
+        ),
+      }));
+      return { id, ...updates };
+    }
     const { data, error } = await supabase
       .from('categories')
       .update(updates)
       .eq('id', id)
       .select()
       .single();
-    
     if (error) throw error;
-    
     set((state) => ({
       categories: state.categories.map((c) =>
         c.id === id ? data : c
       ),
     }));
-    
     return data;
   },
-  
+
   deleteCategory: async (id) => {
+    if (String(id).startsWith('local-')) {
+      set((state) => ({
+        categories: state.categories.filter((c) => c.id !== id),
+      }));
+      return;
+    }
     const { error } = await supabase
       .from('categories')
       .delete()
       .eq('id', id);
-    
     if (error) throw error;
-    
     set((state) => ({
       categories: state.categories.filter((c) => c.id !== id),
     }));
   },
   
+  /** Clear all transactions and categories (e.g. on logout). */
+  clearData: () => {
+    set({ transactions: [], categories: [] });
+  },
+
   getStats: () => {
     const { transactions } = get();
     

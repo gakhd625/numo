@@ -55,19 +55,20 @@ ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 
 -- =====================================================
 -- RLS POLICIES: profiles
+-- Drop first so this script is idempotent (safe to re-run)
 -- =====================================================
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 
--- Users can view their own profile
 CREATE POLICY "Users can view own profile"
   ON profiles FOR SELECT
   USING (auth.uid() = id);
 
--- Users can insert their own profile
 CREATE POLICY "Users can insert own profile"
   ON profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
--- Users can update their own profile
 CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE
   USING (auth.uid() = id);
@@ -75,23 +76,23 @@ CREATE POLICY "Users can update own profile"
 -- =====================================================
 -- RLS POLICIES: categories
 -- =====================================================
+DROP POLICY IF EXISTS "Users can view own categories" ON categories;
+DROP POLICY IF EXISTS "Users can insert own categories" ON categories;
+DROP POLICY IF EXISTS "Users can update own categories" ON categories;
+DROP POLICY IF EXISTS "Users can delete own categories" ON categories;
 
--- Users can view their own categories
 CREATE POLICY "Users can view own categories"
   ON categories FOR SELECT
   USING (auth.uid() = user_id);
 
--- Users can insert their own categories
 CREATE POLICY "Users can insert own categories"
   ON categories FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
--- Users can update their own categories
 CREATE POLICY "Users can update own categories"
   ON categories FOR UPDATE
   USING (auth.uid() = user_id);
 
--- Users can delete their own categories
 CREATE POLICY "Users can delete own categories"
   ON categories FOR DELETE
   USING (auth.uid() = user_id);
@@ -99,23 +100,23 @@ CREATE POLICY "Users can delete own categories"
 -- =====================================================
 -- RLS POLICIES: transactions
 -- =====================================================
+DROP POLICY IF EXISTS "Users can view own transactions" ON transactions;
+DROP POLICY IF EXISTS "Users can insert own transactions" ON transactions;
+DROP POLICY IF EXISTS "Users can update own transactions" ON transactions;
+DROP POLICY IF EXISTS "Users can delete own transactions" ON transactions;
 
--- Users can view their own transactions
 CREATE POLICY "Users can view own transactions"
   ON transactions FOR SELECT
   USING (auth.uid() = user_id);
 
--- Users can insert their own transactions
 CREATE POLICY "Users can insert own transactions"
   ON transactions FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
--- Users can update their own transactions
 CREATE POLICY "Users can update own transactions"
   ON transactions FOR UPDATE
   USING (auth.uid() = user_id);
 
--- Users can delete their own transactions
 CREATE POLICY "Users can delete own transactions"
   ON transactions FOR DELETE
   USING (auth.uid() = user_id);

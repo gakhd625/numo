@@ -32,12 +32,14 @@ npm install
 
 ### Step 3: Configure App (1 min)
 
-Open `src/config/supabase.js` and update:
+Create a `.env` in the project root (or use `app.config.js` with `extra` and `SUPABASE_URL` / `SUPABASE_ANON_KEY`):
 
-```javascript
-const supabaseUrl = 'YOUR_PROJECT_URL';  // Paste your URL
-const supabaseAnonKey = 'YOUR_ANON_KEY'; // Paste your anon key
 ```
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+```
+
+Restart the dev server after changing env.
 
 ### Step 4: Run the App (1 min)
 
@@ -118,10 +120,14 @@ Then press:
 expo start -c  # Clear cache
 ```
 
-**Login not working?**
-- Check Supabase dashboard > Authentication
-- Ensure email confirmations are disabled (for dev)
-- Verify your credentials in supabase.js
+**Login / Sign up not working?**
+- Use a `.env` with `SUPABASE_URL` and `SUPABASE_ANON_KEY` (restart after editing)
+- Supabase dashboard > Authentication: turn off "Confirm email" for quick dev testing
+- Ensure you ran the full `supabase-setup.sql` in SQL Editor (tables + RLS + trigger)
+
+**RLS policy errors in Supabase?**
+- The setup script is idempotent: run the whole `supabase-setup.sql` again in SQL Editor. It drops existing policies then recreates them, so you won’t get "policy already exists" or conflicting RLS.
+- Profile creation is done by a database trigger on sign-up; the app no longer inserts into `profiles` from the client.
 
 **Charts not showing?**
 - Add at least one transaction

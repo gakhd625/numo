@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,17 +6,20 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore, useThemeStore } from '../store';
+import { useAuthStore, useThemeStore, useTransactionStore } from '../store';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
+  const { clearData } = useTransactionStore();
   const { isDark, toggleTheme } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
-  
+  const [loggingOut, setLoggingOut] = useState(false);
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -26,7 +29,17 @@ export default function ProfileScreen() {
         {
           text: 'Logout',
           style: 'destructive',
-          onPress: signOut,
+          onPress: async () => {
+            setLoggingOut(true);
+            try {
+              await signOut();
+              clearData();
+            } catch (err) {
+              Alert.alert('Error', err?.message || 'Logout failed. Try again.');
+            } finally {
+              setLoggingOut(false);
+            }
+          },
         },
       ]
     );
@@ -116,6 +129,8 @@ export default function ProfileScreen() {
             theme.shadow,
           ]}
           onPress={handleLogout}
+          disabled={loggingOut}
+          activeOpacity={0.7}
         >
           <View style={styles.actionLeft}>
             <View
@@ -134,11 +149,15 @@ export default function ProfileScreen() {
               Logout
             </Text>
           </View>
-          <Ionicons
-            name="chevron-forward"
-            size={20}
-            color={theme.textSecondary}
-          />
+          {loggingOut ? (
+            <ActivityIndicator size="small" color={theme.primary} />
+          ) : (
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.textSecondary}
+            />
+          )}
         </TouchableOpacity>
       </View>
       

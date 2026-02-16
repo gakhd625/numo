@@ -25,41 +25,37 @@ export default function SignUpScreen({ navigation }) {
   const { signUp, setUser } = useAuthStore();
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
-  
-  // Commented out sign-up logic for now
-  // const handleSignUp = async () => {
-  //   if (!email || !password || !confirmPassword) {
-  //     Alert.alert('Error', 'Please fill in all fields');
-  //     return;
-  //   }
-  //   if (password !== confirmPassword) {
-  //     Alert.alert('Error', 'Passwords do not match');
-  //     return;
-  //   }
-  //   if (password.length < 6) {
-  //     Alert.alert('Error', 'Password must be at least 6 characters');
-  //     return;
-  //   }
-  //   setLoading(true);
-  //   try {
-  //     await signUp(email, password);
-  //     Alert.alert(
-  //       'Success',
-  //       'Account created successfully! Please log in to continue.',
-  //       [
-  //         { text: 'OK', onPress: () => navigation.navigate('Login') },
-  //       ]
-  //     );
-  //   } catch (error) {
-  //     Alert.alert('Error', error.message);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
-  // Allow skipping sign-up
-  const handleSkipSignUp = () => {
-    // Set a dummy user with a valid UUID to simulate authentication
+  const handleSignUp = async () => {
+    if (!email?.trim() || !password || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+    setLoading(true);
+    try {
+      await signUp(email.trim(), password);
+      Alert.alert(
+        'Account created',
+        'You can now sign in with your email and password.',
+        [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
+      );
+    } catch (err) {
+      const message = err?.message || 'Sign up failed. Try again.';
+      Alert.alert('Error', message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleContinueAsGuest = () => {
     setUser({ id: '00000000-0000-0000-0000-000000000000', email: 'guest@numo.app' });
   };
   
@@ -152,8 +148,6 @@ export default function SignUpScreen({ navigation }) {
               />
             </View>
             
-            {/* Commented out sign-up button */}
-            {/*
             <TouchableOpacity
               style={[styles.button, theme.shadow]}
               onPress={handleSignUp}
@@ -172,20 +166,15 @@ export default function SignUpScreen({ navigation }) {
                 )}
               </LinearGradient>
             </TouchableOpacity>
-            */}
+
             <TouchableOpacity
-              style={[styles.button, theme.shadow, { marginTop: 16 }]}
-              onPress={handleSkipSignUp}
+              style={[styles.buttonSecondary, { borderColor: theme.border }]}
+              onPress={handleContinueAsGuest}
               disabled={loading}
             >
-              <LinearGradient
-                colors={[theme.primary, theme.primaryDark]}
-                style={styles.buttonGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={styles.buttonText}>Skip Sign-Up</Text>
-              </LinearGradient>
+              <Text style={[styles.buttonSecondaryText, { color: theme.textSecondary }]}>
+                Continue as guest
+              </Text>
             </TouchableOpacity>
             
             <View style={styles.footer}>
@@ -265,6 +254,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     borderRadius: borderRadius.lg,
     overflow: 'hidden',
+  },
+  buttonSecondary: {
+    marginTop: spacing.sm,
+    height: 56,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonSecondaryText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
   },
   buttonGradient: {
     height: 56,

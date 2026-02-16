@@ -8,6 +8,7 @@ import {
   Alert,
   Modal,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,20 +25,31 @@ const DEFAULT_ICONS = [
   '🏋️', '☕', '🎵', '🛒', '💼', '🎓', '🏥', '🔧', '🎨', '📱',
 ];
 
+const GUEST_ID = '00000000-0000-0000-0000-000000000000';
+
 export default function CategoriesScreen() {
   const { user } = useAuthStore();
-  const { categories, fetchCategories, addCategory, deleteCategory, updateCategory } = useTransactionStore();
+  const {
+    categories,
+    fetchCategories,
+    addCategory,
+    addCategoryLocal,
+    deleteCategory,
+    updateCategory,
+  } = useTransactionStore();
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
-  
+
   const [modalVisible, setModalVisible] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [name, setName] = useState('');
   const [selectedColor, setSelectedColor] = useState(DEFAULT_COLORS[0]);
   const [selectedIcon, setSelectedIcon] = useState(DEFAULT_ICONS[0]);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   
   useEffect(() => {
-    if (user && user.id !== '00000000-0000-0000-0000-000000000000') {
+    if (user && user.id !== GUEST_ID) {
       fetchCategories(user.id);
     }
   }, [user]);
@@ -62,12 +74,17 @@ export default function CategoriesScreen() {
       Alert.alert('Error', 'Please enter a category name');
       return;
     }
+    const isGuest = user?.id === GUEST_ID;
+    setSaving(true);
     try {
-      if (user && user.id === '00000000-0000-0000-0000-000000000000') {
-        // Guest mode: store locally only
-        // You may want to use AsyncStorage or just keep in memory for demo
-        Alert.alert('Guest Mode', 'Category added locally (not saved to cloud).');
+      if (isGuest) {
+        addCategoryLocal({
+          name: name.trim(),
+          color: selectedColor,
+          icon: selectedIcon,
+        });
         setModalVisible(false);
+        resetModal();
         return;
       }
       if (editingCategory) {
@@ -85,9 +102,19 @@ export default function CategoriesScreen() {
         });
       }
       setModalVisible(false);
-    } catch (error) {
-      Alert.alert('Error', error.message);
+      resetModal();
+    } catch (err) {
+      Alert.alert('Error', err?.message || 'Could not save category. Try again.');
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const resetModal = () => {
+    setEditingCategory(null);
+    setName('');
+    setSelectedColor(DEFAULT_COLORS[0]);
+    setSelectedIcon(DEFAULT_ICONS[0]);
   };
   
   const handleDelete = (category) => {
@@ -99,7 +126,16 @@ export default function CategoriesScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteCategory(category.id),
+          onPress: async () => {
+            setDeletingId(category.id);
+            try {
+              await deleteCategory(category.id);
+            } catch (err) {
+              Alert.alert('Error', err?.message || 'Could not delete category.');
+            } finally {
+              setDeletingId(null);
+            }
+          },
         },
       ]
     );
@@ -126,14 +162,22 @@ export default function CategoriesScreen() {
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleOpenModal(item)}
+          activeOpacity={0.7}
+          disabled={deletingId === item.id}
         >
           <Ionicons name="create-outline" size={20} color={theme.primary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => handleDelete(item)}
+          activeOpacity={0.7}
+          disabled={deletingId === item.id}
         >
-          <Ionicons name="trash-outline" size={20} color={theme.expense} />
+          {deletingId === item.id ? (
+            <ActivityIndicator size="small" color={theme.expense} />
+          ) : (
+            <Ionicons name="trash-outline" size={20} color={theme.expense} />
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -146,6 +190,7 @@ export default function CategoriesScreen() {
         <TouchableOpacity
           style={[styles.addButton, { backgroundColor: theme.primary }]}
           onPress={() => handleOpenModal()}
+          activeOpacity={0.8}
         >
           <Ionicons name="add" size={24} color="#FFF" />
         </TouchableOpacity>
@@ -160,6 +205,7 @@ export default function CategoriesScreen() {
           <TouchableOpacity
             style={[styles.createButton, { backgroundColor: theme.primary }]}
             onPress={() => handleOpenModal()}
+            activeOpacity={0.8}
           >
             <Text style={styles.createButtonText}>Create Category</Text>
           </TouchableOpacity>
@@ -178,7 +224,10 @@ export default function CategoriesScreen() {
         visible={modalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => {
+          setModalVisible(false);
+          resetModal();
+        }}
       >
         <View style={styles.modalOverlay}>
           <View
@@ -191,7 +240,14 @@ export default function CategoriesScreen() {
               <Text style={[styles.modalTitle, { color: theme.text }]}>
                 {editingCategory ? 'Edit Category' : 'New Category'}
               </Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity
+                onPress={() => {
+                  setModalVisible(false);
+                  resetModal();
+                }}
+                disabled={saving}
+                activeOpacity={0.7}
+              >
                 <Ionicons name="close" size={24} color={theme.text} />
               </TouchableOpacity>
             </View>
@@ -264,6 +320,8 @@ export default function CategoriesScreen() {
             <TouchableOpacity
               style={[styles.saveButton, theme.shadow]}
               onPress={handleSave}
+              disabled={saving}
+              activeOpacity={0.8}
             >
               <LinearGradient
                 colors={[theme.primary, theme.primaryDark]}
@@ -271,9 +329,13 @@ export default function CategoriesScreen() {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.saveText}>
-                  {editingCategory ? 'Update' : 'Create'}
-                </Text>
+                {saving ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <Text style={styles.saveText}>
+                    {editingCategory ? 'Update' : 'Create'}
+                  </Text>
+                )}
               </LinearGradient>
             </TouchableOpacity>
           </View>

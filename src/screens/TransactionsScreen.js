@@ -41,7 +41,13 @@ export default function TransactionsScreen({ navigation }) {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => deleteTransaction(id),
+          onPress: async () => {
+            try {
+              await deleteTransaction(id);
+            } catch (err) {
+              Alert.alert('Error', err?.message || 'Could not delete transaction.');
+            }
+          },
         },
       ]
     );
