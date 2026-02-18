@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as goalService from '../services/goalService';
 
 /** Parse Supabase auth params from URL hash or search (e.g. recovery redirect). */
 function parseAuthParamsFromUrl(url) {
@@ -368,5 +369,186 @@ export const useTransactionStore = create((set, get) => ({
       totalExpense,
       expensesByCategory: Object.values(expensesByCategory),
     };
+  },
+}));
+
+export const useGoalStore = create((set, get) => ({
+  goals: [],
+  contributions: {},
+  loading: false,
+  error: null,
+
+  /**
+   * Fetch all goals for a user
+   */
+  fetchGoals: async (userId) => {
+    set({ loading: true, error: null });
+    try {
+      const { data, error } = await goalService.getUserGoals(userId);
+      if (error) throw error;
+      set({ goals: data || [], loading: false });
+    } catch (error) {
+      console.error('Error fetching goals:', error);
+      set({ error, loading: false });
+    }
+  },
+
+  /**
+   * Create a new goal
+   */
+  createGoal: async (goalData, userId) => {
+    set({ loading: true, error: null });
+    try {
+      const { data, error } = await goalService.createGoal(goalData, userId);
+      if (error) throw error;
+      set((state) => ({
+        goals: [data, ...state.goals],
+        loading: false,
+      }));
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error creating goal:', error);
+      set({ error, loading: false });
+      return { data: null, error };
+    }
+  },
+
+  /**
+   * Update a goal
+   */
+  updateGoal: async (goalId, updates) => {
+    set({ loading: true, error: null });
+    try {
+      const { data, error } = await goalService.updateGoal(goalId, updates);
+      if (error) throw error;
+      set((state) => ({
+        goals: state.goals.map((g) => (g.id === goalId ? data : g)),
+        loading: false,
+      }));
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error updating goal:', error);
+      set({ error, loading: false });
+      return { data: null, error };
+    }
+  },
+
+  /**
+   * Delete a goal
+   */
+  deleteGoal: async (goalId) => {
+    set({ loading: true, error: null });
+    try {
+      const result = await goalService.deleteGoal(goalId);
+      if (result?.error) {
+        console.error('Error deleting goal:', result.error);
+        set({ error: result.error, loading: false });
+        return { error: result.error };
+      }
+      set((state) => ({
+        goals: state.goals.filter((g) => g.id !== goalId),
+        contributions: Object.fromEntries(
+          Object.entries(state.contributions).filter(([key]) => key !== goalId)
+        ),
+        loading: false,
+      }));
+      return { error: null };
+    } catch (error) {
+      console.error('Error deleting goal (exception):', error);
+      set({ error, loading: false });
+      return { error };
+    }
+  },
+
+  /**
+   * Add a contribution to a goal
+   */
+  addContribution: async (goalId, amount) => {
+    set({ loading: true, error: null });
+    try {
+      const result = await goalService.addContribution(goalId, amount);
+      if (result?.error) {
+        set({ error: result.error, loading: false });
+        return { data: null, error: result.error };
+      }
+      const { data } = result;
+      // Update goal in store
+      if (data?.goal) {
+        set((state) => ({
+          goals: state.goals.map((g) =>
+            g.id === goalId ? data.goal : g
+          ),
+        }));
+      }
+      await get().fetchContributions(goalId);
+      set({ loading: false });
+      return { data, error: null };
+    } catch (error) {
+      set({ error, loading: false });
+      return { data: null, error };
+    }
+  },
+
+  /**
+   * Fetch contributions for a specific goal
+   */
+  fetchContributions: async (goalId) => {
+    try {
+      const { data, error } = await goalService.getGoalContributions(goalId);
+      if (error) throw error;
+      set((state) => ({
+        contributions: {
+          ...state.contributions,
+          [goalId]: data || [],
+        },
+      }));
+    } catch (error) {
+      console.error('Error fetching contributions:', error);
+    }
+  },
+
+  /**
+   * Delete a contribution
+   */
+  deleteContribution: async (contributionId, goalId) => {
+    set({ loading: true, error: null });
+    try {
+      const { data, error } = await goalService.deleteContribution(
+        contributionId,
+        goalId
+      );
+      if (error) throw error;
+      
+      // Update goal in store
+      if (data) {
+        set((state) => ({
+          goals: state.goals.map((g) =>
+            g.id === goalId ? data : g
+          ),
+          loading: false,
+        }));
+      }
+      
+      // Refresh contributions
+      await get().fetchContributions(goalId);
+      
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error deleting contribution:', error);
+      set({ error, loading: false });
+      return { data: null, error };
+    }
+  },
+
+  /**
+   * Clear last error (e.g. so user can dismiss on-screen message)
+   */
+  clearError: () => set({ error: null }),
+
+  /**
+   * Clear all goals data (e.g. on logout)
+   */
+  clearData: () => {
+    set({ goals: [], contributions: {}, error: null });
   },
 }));

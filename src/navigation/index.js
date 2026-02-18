@@ -13,6 +13,10 @@ import TransactionsScreen from '../screens/TransactionsScreen';
 import AddTransactionScreen from '../screens/AddTransactionScreen';
 import EditTransactionScreen from '../screens/EditTransactionScreen';
 import CategoriesScreen from '../screens/CategoriesScreen';
+import GoalsScreen from '../screens/GoalsScreen';
+import CreateGoalScreen from '../screens/CreateGoalScreen';
+import GoalDetailsScreen from '../screens/GoalDetailsScreen';
+import EditGoalScreen from '../screens/EditGoalScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LoadingScreen from '../screens/LoadingScreen';
 
@@ -55,6 +59,8 @@ function MainTabs() {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Transactions') {
             iconName = focused ? 'receipt' : 'receipt-outline';
+          } else if (route.name === 'Goals') {
+            iconName = focused ? 'flag' : 'flag-outline';
           } else if (route.name === 'Categories') {
             iconName = focused ? 'pricetags' : 'pricetags-outline';
           } else if (route.name === 'Profile') {
@@ -81,6 +87,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Transactions" component={TransactionsScreen} />
+      <Tab.Screen name="Goals" component={GoalsScreen} />
       <Tab.Screen name="Categories" component={CategoriesScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -119,6 +126,21 @@ function MainStack() {
         name="EditTransaction"
         component={EditTransactionScreen}
         options={{ title: 'Edit Transaction' }}
+      />
+      <Stack.Screen
+        name="CreateGoal"
+        component={CreateGoalScreen}
+        options={{ title: 'Create Goal' }}
+      />
+      <Stack.Screen
+        name="GoalDetails"
+        component={GoalDetailsScreen}
+        options={{ title: 'Goal Details' }}
+      />
+      <Stack.Screen
+        name="EditGoal"
+        component={EditGoalScreen}
+        options={{ title: 'Edit Goal' }}
       />
     </Stack.Navigator>
   );
