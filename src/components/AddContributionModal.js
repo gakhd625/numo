@@ -11,13 +11,14 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useGoalStore, useThemeStore } from '../store';
+import { useAuthStore, useGoalStore, useThemeStore, useTransactionStore } from '../store';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 import { getErrorMessage } from '../utils/errorMessage';
 
 /**
  * Add Contribution Modal Component
  * Allows users to add a contribution to a goal
+ * Also creates an expense transaction to track the contribution
  * @param {boolean} visible - Whether modal is visible
  * @param {Object} goal - Goal object
  * @param {Function} onClose - Callback when modal closes
@@ -29,7 +30,9 @@ export default function AddContributionModal({
   onClose,
   onSuccess,
 }) {
+  const { user } = useAuthStore();
   const { addContribution, loading } = useGoalStore();
+  const { fetchTransactions } = useTransactionStore();
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
 
@@ -50,13 +53,18 @@ export default function AddContributionModal({
 
     setErrorMessage(null);
     try {
-      const result = await addContribution(goal.id, parseFloat(amount));
+      const result = await addContribution(goal.id, parseFloat(amount), user?.id);
 
       if (result?.error) {
         const msg = getErrorMessage(result.error, 'Failed to add contribution. Check your connection and try again.');
         setErrorMessage(msg);
         Alert.alert('Cannot add contribution', msg);
         return;
+      }
+
+      // Refresh transactions to reflect the new expense
+      if (user?.id) {
+        fetchTransactions(user.id);
       }
 
       setAmount('');

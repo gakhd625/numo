@@ -102,22 +102,31 @@ export const updateGoal = async (goalId, updates) => {
  */
 export const deleteGoal = async (goalId) => {
   try {
+    console.log('goalService.deleteGoal called with id:', goalId);
     const { data, error } = await supabase
       .from('goals')
       .delete()
       .eq('id', goalId)
       .select();
 
+    console.log('Supabase delete response - data:', data, 'error:', error);
+
     if (error) {
       throw error;
     }
     
-    // Verify deletion succeeded - if RLS blocks, data will be empty array
-    // If goal doesn't exist, data will also be empty array
-    // We can't distinguish these cases, but if error is null, assume success
-    // The store will remove it from local state anyway
+    // Verify deletion succeeded - if RLS blocks or goal doesn't exist, data will be empty
+    if (!data || data.length === 0) {
+      console.log('Delete returned empty data - RLS might be blocking or goal does not exist');
+      return { 
+        error: { 
+          message: 'Goal could not be deleted. You may not have permission or the goal no longer exists.' 
+        } 
+      };
+    }
     
-    return { error: null, deleted: data || [] };
+    console.log('Goal successfully deleted:', data);
+    return { error: null, deleted: data };
   } catch (error) {
     console.error('Error deleting goal:', error);
     return { error };
@@ -127,11 +136,13 @@ export const deleteGoal = async (goalId) => {
 /**
  * Add a contribution to a goal
  * Validates that goal is not completed and amount is positive
+ * Also creates an expense transaction to track the contribution
  * @param {string} goalId - Goal ID
  * @param {number} amount - Contribution amount (must be > 0)
+ * @param {string} userId - User ID for creating the transaction
  * @returns {Promise<Object>} Created contribution and updated goal
  */
-export const addContribution = async (goalId, amount) => {
+export const addContribution = async (goalId, amount, userId) => {
   try {
     // Validate amount
     if (!amount || amount <= 0) {
@@ -151,6 +162,8 @@ export const addContribution = async (goalId, amount) => {
       throw new Error('Cannot add contribution to completed goal');
     }
 
+    const goal = goalResult.data;
+
     // Insert contribution (trigger will update goal saved_amount)
     const { data, error } = await supabase
       .from('goal_contributions')
@@ -162,6 +175,25 @@ export const addContribution = async (goalId, amount) => {
       .single();
 
     if (error) throw error;
+
+    // Create an expense transaction linked to this contribution
+    // This reduces the user's available balance
+    const { error: transactionError } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: userId || goal.user_id,
+        amount: amount,
+        type: 'expense',
+        category_id: null, // No category - it's a savings contribution
+        note: `Savings: ${goal.name}`,
+        date: new Date().toISOString().split('T')[0],
+        goal_contribution_id: data.id,
+      });
+
+    if (transactionError) {
+      console.warn('Could not create transaction for contribution:', transactionError);
+      // Don't fail the whole operation - contribution was still added
+    }
 
     // Fetch updated goal
     const updatedGoalResult = await getGoalById(goalId);

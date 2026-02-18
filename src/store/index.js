@@ -462,11 +462,15 @@ export const useGoalStore = create((set, get) => ({
 
   /**
    * Add a contribution to a goal
+   * Also creates an expense transaction to reduce balance
+   * @param {string} goalId - Goal ID
+   * @param {number} amount - Amount to contribute
+   * @param {string} userId - User ID for creating transaction
    */
-  addContribution: async (goalId, amount) => {
+  addContribution: async (goalId, amount, userId) => {
     set({ loading: true, error: null });
     try {
-      const result = await goalService.addContribution(goalId, amount);
+      const result = await goalService.addContribution(goalId, amount, userId);
       if (result?.error) {
         set({ error: result.error, loading: false });
         return { data: null, error: result.error };

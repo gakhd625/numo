@@ -8,9 +8,10 @@ import {
   Alert,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useGoalStore, useThemeStore } from '../store';
+import { useAuthStore, useGoalStore, useThemeStore, useTransactionStore } from '../store';
 import ProgressBar from '../components/ProgressBar';
 import ContributionItem from '../components/ContributionItem';
 import AddContributionModal from '../components/AddContributionModal';
@@ -20,7 +21,9 @@ import { format } from 'date-fns';
 
 export default function GoalDetailsScreen({ route, navigation }) {
   const { goal: initialGoal } = route.params;
+  const { user } = useAuthStore();
   const { isDark } = useThemeStore();
+  const { fetchTransactions } = useTransactionStore();
   const theme = isDark ? darkTheme : lightTheme;
   const {
     goals,
@@ -62,6 +65,16 @@ export default function GoalDetailsScreen({ route, navigation }) {
   };
 
   const handleDelete = () => {
+    // On web, use window.confirm for more reliable behavior
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Are you sure you want to delete this goal? All contributions will be deleted.');
+      if (confirmed) {
+        performDelete();
+      }
+      return;
+    }
+    
+    // On native, use Alert.alert
     Alert.alert(
       'Delete Goal',
       'Are you sure you want to delete this goal? All contributions will be deleted.',
@@ -70,37 +83,38 @@ export default function GoalDetailsScreen({ route, navigation }) {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: async () => {
-            setDeleteError(null);
-            try {
-              const result = await deleteGoal(goal.id);
-              if (result?.error) {
-                const msg = getErrorMessage(result.error, 'Failed to delete goal. Check your connection and try again.');
-                setDeleteError(msg);
-                Alert.alert('Cannot delete goal', msg);
-              } else {
-                // Success - show confirmation and navigate back
-                Alert.alert(
-                  'Goal Deleted',
-                  'The goal and all its contributions have been deleted.',
-                  [
-                    {
-                      text: 'OK',
-                      onPress: () => navigation.goBack(),
-                    },
-                  ],
-                  { cancelable: false }
-                );
-              }
-            } catch (error) {
-              const msg = getErrorMessage(error, 'Failed to delete goal.');
-              setDeleteError(msg);
-              Alert.alert('Cannot delete goal', msg);
-            }
-          },
+          onPress: () => performDelete(),
         },
       ]
     );
+  };
+
+  const performDelete = async () => {
+    setDeleteError(null);
+    console.log('Attempting to delete goal:', goal.id);
+    try {
+      const result = await deleteGoal(goal.id);
+      console.log('Delete result:', result);
+      if (result?.error) {
+        const msg = getErrorMessage(result.error, 'Failed to delete goal. Check your connection and try again.');
+        console.error('Delete failed:', msg);
+        setDeleteError(msg);
+        Alert.alert('Cannot delete goal', msg);
+      } else {
+        // Refresh transactions - this restores balance since goal expense transactions are deleted
+        if (user?.id) {
+          fetchTransactions(user.id);
+        }
+        // Success - navigate back immediately (works better on web)
+        console.log('Delete succeeded, navigating back');
+        navigation.goBack();
+      }
+    } catch (error) {
+      console.error('Delete exception:', error);
+      const msg = getErrorMessage(error, 'Failed to delete goal.');
+      setDeleteError(msg);
+      Alert.alert('Cannot delete goal', msg);
+    }
   };
 
   const handleEdit = () => {
