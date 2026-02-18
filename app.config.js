@@ -5,6 +5,7 @@ const base = require('./app.json');
 module.exports = {
   expo: {
     ...base.expo,
+    scheme: 'numo',
     extra: {
       ...base.expo.extra,
       SUPABASE_URL: process.env.SUPABASE_URL ?? '',

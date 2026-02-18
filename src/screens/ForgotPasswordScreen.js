@@ -68,7 +68,8 @@ export default function ForgotPasswordScreen({ navigation }) {
               <Text style={{ fontWeight: fontWeight.semibold }}>{email}</Text>
             </Text>
             <Text style={[styles.successSubtext, { color: theme.textSecondary }]}>
-              Click the link in the email to reset your password. The link will expire in 1 hour.
+              Click the link in the email to reset your password. The link works only once and
+              expires within 24 hours.
             </Text>
             <TouchableOpacity
               style={[styles.button, theme.shadow]}

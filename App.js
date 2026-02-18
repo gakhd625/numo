@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Linking } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Navigation from './src/navigation';
@@ -31,14 +31,42 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+function isResetPasswordUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  return (
+    url.includes('/reset-password') ||
+    url.includes('reset-password#') ||
+    url.startsWith('numo://reset-password')
+  );
+}
+
 export default function App() {
-  const { initialize } = useAuthStore();
+  const { initialize, setSessionFromRecoveryUrl } = useAuthStore();
   const { initializeTheme, isDark } = useThemeStore();
-  
+
   useEffect(() => {
     initializeTheme();
     initialize();
   }, []);
+
+  // Handle open from reset-password link (cold start)
+  useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (isResetPasswordUrl(url)) {
+        setSessionFromRecoveryUrl(url);
+      }
+    });
+  }, [setSessionFromRecoveryUrl]);
+
+  // Handle open from reset-password link (app already running)
+  useEffect(() => {
+    const sub = Linking.addEventListener('url', ({ url }) => {
+      if (isResetPasswordUrl(url)) {
+        setSessionFromRecoveryUrl(url);
+      }
+    });
+    return () => sub.remove();
+  }, [setSessionFromRecoveryUrl]);
   
   return (
     <ErrorBoundary>

@@ -2,15 +2,61 @@ import { create } from 'zustand';
 import { supabase } from '../config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const useAuthStore = create((set) => ({
+/** Parse Supabase auth params from URL hash or search (e.g. recovery redirect). */
+function parseAuthParamsFromUrl(url) {
+  if (!url || typeof url !== 'string') return null;
+  try {
+    const u = new URL(url);
+    const hash = u.hash ? u.hash.slice(1) : '';
+    const search = u.search ? u.search.slice(1) : '';
+    const params = new URLSearchParams(hash || search);
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    const type = params.get('type');
+    if (access_token && refresh_token && type === 'recovery') {
+      return { access_token, refresh_token };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export const useAuthStore = create((set, get) => ({
   user: null,
   session: null,
   loading: true,
-  
+  /** When true, user landed from recovery link and must set a new password. */
+  pendingPasswordReset: false,
+
   setUser: (user) => set({ user }),
   setSession: (session) => set({ session }),
   setLoading: (loading) => set({ loading }),
-  
+
+  /** Call when app is opened via reset-password link (deep link or universal link). */
+  setSessionFromRecoveryUrl: async (url) => {
+    const params = parseAuthParamsFromUrl(url);
+    if (!params) return false;
+    try {
+      const { data, error } = await supabase.auth.setSession({
+        access_token: params.access_token,
+        refresh_token: params.refresh_token,
+      });
+      if (error) throw error;
+      set({
+        session: data.session,
+        user: data.user,
+        pendingPasswordReset: true,
+      });
+      return true;
+    } catch (e) {
+      console.error('Recovery setSession failed:', e);
+      return false;
+    }
+  },
+
+  clearPendingPasswordReset: () => set({ pendingPasswordReset: false }),
+
   signIn: async (email, password) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
@@ -49,13 +95,19 @@ export const useAuthStore = create((set) => ({
   
   resetPassword: async (email) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://numo-auth.vercel.app/reset-password', // Deep link - will need to handle this
+      redirectTo: 'https://numo-auth.vercel.app/reset-password',
     });
-    
     if (error) throw error;
     return true;
   },
-  
+
+  /** Call after opening app from recovery link; clears pendingPasswordReset on success. */
+  updatePassword: async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    get().clearPendingPasswordReset();
+  },
+
   initialize: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();

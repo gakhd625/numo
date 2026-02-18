@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import TransactionsScreen from '../screens/TransactionsScreen';
 import AddTransactionScreen from '../screens/AddTransactionScreen';
@@ -124,14 +125,36 @@ function MainStack() {
 }
 
 export default function Navigation() {
-  const { user, loading } = useAuthStore();
+  const { user, loading, pendingPasswordReset } = useAuthStore();
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
-  
+
   if (loading) {
     return <LoadingScreen />;
   }
-  
+
+  if (user && pendingPasswordReset) {
+    return (
+      <NavigationContainer
+        theme={{
+          dark: isDark,
+          colors: {
+            primary: theme.primary,
+            background: theme.background,
+            card: theme.surface,
+            text: theme.text,
+            border: theme.border,
+            notification: theme.primary,
+          },
+        }}
+      >
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
+
   return (
     <NavigationContainer
       theme={{
