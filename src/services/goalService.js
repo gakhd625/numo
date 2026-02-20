@@ -80,6 +80,17 @@ export const getGoalById = async (goalId) => {
  */
 export const updateGoal = async (goalId, updates) => {
   try {
+    // If target_amount is changing, recalculate is_completed
+    if (updates.target_amount !== undefined) {
+      const currentGoal = await getGoalById(goalId);
+      if (currentGoal.error) throw currentGoal.error;
+      if (currentGoal.data) {
+        const savedAmount = parseFloat(currentGoal.data.saved_amount) || 0;
+        const newTarget = parseFloat(updates.target_amount);
+        updates.is_completed = savedAmount >= newTarget;
+      }
+    }
+
     const { data, error } = await supabase
       .from('goals')
       .update(updates)
@@ -114,17 +125,17 @@ export const deleteGoal = async (goalId) => {
     if (error) {
       throw error;
     }
-    
+
     // Verify deletion succeeded - if RLS blocks or goal doesn't exist, data will be empty
     if (!data || data.length === 0) {
       console.log('Delete returned empty data - RLS might be blocking or goal does not exist');
-      return { 
-        error: { 
-          message: 'Goal could not be deleted. You may not have permission or the goal no longer exists.' 
-        } 
+      return {
+        error: {
+          message: 'Goal could not be deleted. You may not have permission or the goal no longer exists.'
+        }
       };
     }
-    
+
     console.log('Goal successfully deleted:', data);
     return { error: null, deleted: data };
   } catch (error) {
@@ -201,13 +212,13 @@ export const addContribution = async (goalId, amount, userId) => {
       // If we can't fetch updated goal, still return success with contribution
       console.warn('Could not fetch updated goal after contribution:', updatedGoalResult.error);
     }
-    
-    return { 
-      data: { 
-        contribution: data, 
+
+    return {
+      data: {
+        contribution: data,
         goal: updatedGoalResult.data || null
-      }, 
-      error: null 
+      },
+      error: null
     };
   } catch (error) {
     console.error('Error adding contribution:', error);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { useAuthStore, useGoalStore, useThemeStore, useTransactionStore } from '
 import ProgressBar from '../components/ProgressBar';
 import ContributionItem from '../components/ContributionItem';
 import AddContributionModal from '../components/AddContributionModal';
+import ConfettiCelebration from '../components/ConfettiCelebration';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 import { getErrorMessage } from '../utils/errorMessage';
 import { format } from 'date-fns';
@@ -41,11 +42,18 @@ export default function GoalDetailsScreen({ route, navigation }) {
   const [showContributionModal, setShowContributionModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const wasCompletedRef = useRef(initialGoal.is_completed);
 
   useEffect(() => {
     // Update goal from store if it changed
     const updatedGoal = goals.find((g) => g.id === goal.id);
     if (updatedGoal) {
+      // Detect completion transition: was NOT completed, now IS completed
+      if (!wasCompletedRef.current && updatedGoal.is_completed) {
+        setShowConfetti(true);
+      }
+      wasCompletedRef.current = updatedGoal.is_completed;
       setGoal(updatedGoal);
     }
   }, [goals]);
@@ -73,7 +81,7 @@ export default function GoalDetailsScreen({ route, navigation }) {
       }
       return;
     }
-    
+
     // On native, use Alert.alert
     Alert.alert(
       'Delete Goal',
@@ -261,8 +269,8 @@ export default function GoalDetailsScreen({ route, navigation }) {
                 {daysRemaining < 0
                   ? `${Math.abs(daysRemaining)} days overdue`
                   : daysRemaining === 0
-                  ? 'Due today'
-                  : `${daysRemaining} days remaining`}
+                    ? 'Due today'
+                    : `${daysRemaining} days remaining`}
               </Text>
             </View>
           )}
@@ -359,6 +367,12 @@ export default function GoalDetailsScreen({ route, navigation }) {
           setShowContributionModal(false);
           loadContributions();
         }}
+      />
+
+      {/* Confetti celebration on goal completion */}
+      <ConfettiCelebration
+        visible={showConfetti}
+        onDismiss={() => setShowConfetti(false)}
       />
     </View>
   );
