@@ -26,7 +26,7 @@ export default function BalanceCard({ balance, theme }) {
                 {/* Top row */}
                 <View style={styles.topRow}>
                     <Text style={styles.label}>Your Balance</Text>
-                    <Text style={styles.badge}>VISA</Text>
+                    {/* <Text style={styles.badge}>VISA</Text> */}
                 </View>
 
                 {/* Amount */}
