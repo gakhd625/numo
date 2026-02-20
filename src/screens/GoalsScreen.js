@@ -19,7 +19,7 @@ export default function GoalsScreen({ navigation }) {
   const { goals, fetchGoals, loading } = useGoalStore();
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
-  
+
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -125,6 +125,7 @@ const styles = StyleSheet.create({
   },
   list: {
     padding: spacing.md,
+    paddingBottom: 100,
   },
   emptyList: {
     flex: 1,
@@ -162,8 +163,8 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    right: spacing.md,
-    bottom: spacing.md,
+    right: spacing.lg,
+    bottom: 94,
     width: 56,
     height: 56,
     borderRadius: 28,
