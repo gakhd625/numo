@@ -13,6 +13,7 @@ import { useAuthStore, useTransactionStore, useThemeStore } from '../store';
 import CategoryIcon from '../components/CategoryIcon';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 import { format } from 'date-fns';
+import { formatPesoAmount, formatSignedPesoAmount } from '../utils/currency';
 
 export default function TransactionsScreen({ navigation }) {
   const { user } = useAuthStore();
@@ -32,6 +33,14 @@ export default function TransactionsScreen({ navigation }) {
     if (filterType === 'all') return true;
     return t.type === filterType;
   });
+
+  const incomeTotal = filteredTransactions
+    .filter((t) => t.type === 'income')
+    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+  const expenseTotal = filteredTransactions
+    .filter((t) => t.type === 'expense')
+    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
   
   const handleDelete = (id) => {
     Alert.alert(
@@ -99,8 +108,7 @@ export default function TransactionsScreen({ navigation }) {
             },
           ]}
         >
-          {item.type === 'income' ? '+' : '-'}$
-          {parseFloat(item.amount).toFixed(2)}
+          {formatSignedPesoAmount(item.amount, item.type)}
         </Text>
       </View>
     </TouchableOpacity>
@@ -122,6 +130,20 @@ export default function TransactionsScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: theme.text }]}>Transactions</Text>
+        <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+          Tap to edit. Swipe left to delete.
+        </Text>
+      </View>
+
+      <View style={styles.summaryRow}>
+        <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }, theme.shadow]}>
+          <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Income</Text>
+          <Text style={[styles.summaryIncomeValue, { color: theme.income }]}>{formatPesoAmount(incomeTotal)}</Text>
+        </View>
+        <View style={[styles.summaryCard, { backgroundColor: theme.surface, borderColor: theme.border }, theme.shadow]}>
+          <Text style={[styles.summaryLabel, { color: theme.textSecondary }]}>Expenses</Text>
+          <Text style={[styles.summaryExpenseValue, { color: theme.expense }]}>{formatPesoAmount(expenseTotal)}</Text>
+        </View>
       </View>
       
       {/* Filters */}
@@ -235,6 +257,34 @@ const styles = StyleSheet.create({
   title: {
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
+  },
+  subtitle: {
+    fontSize: fontSize.xs,
+    marginTop: spacing.xs,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  summaryCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+  },
+  summaryLabel: {
+    fontSize: fontSize.xs,
+    marginBottom: spacing.xs,
+  },
+  summaryIncomeValue: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+  },
+  summaryExpenseValue: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
   },
   filterContainer: {
     flexDirection: 'row',
