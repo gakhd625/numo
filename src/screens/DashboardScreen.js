@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore, useTransactionStore, useThemeStore } from '../store';
 import CategoryIcon from '../components/CategoryIcon';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
+import { formatPesoAmount, formatSignedPesoAmount } from '../utils/currency';
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
 
 const screenWidth = Dimensions.get('window').width;
@@ -130,6 +131,9 @@ export default function DashboardScreen({ navigation }) {
             <Text style={[styles.name, { color: theme.text }]}>
               {user?.email?.split('@')[0] || 'User'}
             </Text>
+            <Text style={[styles.helperText, { color: theme.textSecondary }]}>
+              Here is your latest financial snapshot
+            </Text>
           </View>
         </View>
         
@@ -143,7 +147,7 @@ export default function DashboardScreen({ navigation }) {
           >
             <Text style={styles.balanceLabel}>Total Balance</Text>
             <Text style={styles.balanceAmount}>
-              ${stats.balance.toFixed(2)}
+              {formatPesoAmount(stats.balance)}
             </Text>
             
             <View style={styles.balanceRow}>
@@ -154,7 +158,7 @@ export default function DashboardScreen({ navigation }) {
                 <View>
                   <Text style={styles.balanceItemLabel}>Income</Text>
                   <Text style={styles.balanceItemValue}>
-                    ${stats.totalIncome.toFixed(2)}
+                    {formatPesoAmount(stats.totalIncome)}
                   </Text>
                 </View>
               </View>
@@ -166,13 +170,40 @@ export default function DashboardScreen({ navigation }) {
                 <View>
                   <Text style={styles.balanceItemLabel}>Expenses</Text>
                   <Text style={styles.balanceItemValue}>
-                    ${stats.totalExpense.toFixed(2)}
+                    {formatPesoAmount(stats.totalExpense)}
                   </Text>
                 </View>
               </View>
             </View>
           </LinearGradient>
         </TouchableOpacity>
+
+        <View style={styles.quickActionsRow}>
+          <TouchableOpacity
+            style={[styles.quickActionCard, { backgroundColor: theme.surface, borderColor: theme.border }, theme.shadow]}
+            onPress={() => navigation.navigate('AddTransaction')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add-circle" size={20} color={theme.primary} />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Add</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickActionCard, { backgroundColor: theme.surface, borderColor: theme.border }, theme.shadow]}
+            onPress={() => navigation.navigate('Transactions')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="receipt" size={20} color={theme.primary} />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>History</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickActionCard, { backgroundColor: theme.surface, borderColor: theme.border }, theme.shadow]}
+            onPress={() => navigation.navigate('Categories')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="pricetags" size={20} color={theme.primary} />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Categories</Text>
+          </TouchableOpacity>
+        </View>
         
         {/* Monthly Trend Chart */}
         {transactions.length > 0 && (
@@ -291,8 +322,7 @@ export default function DashboardScreen({ navigation }) {
                       },
                     ]}
                   >
-                    {transaction.type === 'income' ? '+' : '-'}$
-                    {parseFloat(transaction.amount).toFixed(2)}
+                    {formatSignedPesoAmount(transaction.amount, transaction.type)}
                   </Text>
                   <Text style={[styles.transactionDate, { color: theme.textSecondary }]}>
                     {format(new Date(transaction.date), 'MMM dd')}
@@ -339,6 +369,10 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: fontSize.sm,
     marginBottom: spacing.xs,
+  },
+  helperText: {
+    fontSize: fontSize.xs,
+    marginTop: spacing.xs,
   },
   name: {
     fontSize: fontSize.xl,
@@ -393,6 +427,26 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: spacing.lg,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.lg,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  quickActionCard: {
+    flex: 1,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    height: 44,
+  },
+  quickActionText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   card: {
     marginHorizontal: spacing.lg,
