@@ -23,6 +23,7 @@
     "expo-linear-gradient": "~12.7.0",
     "expo-modules-core": "~1.11.14",
     "expo-status-bar": "~1.11.1",
+    "expo-updates": "~0.24.13",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-native": "0.73.2",

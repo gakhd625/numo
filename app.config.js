@@ -1,11 +1,19 @@
-// EAS Build sets SUPABASE_URL and SUPABASE_ANON_KEY as secrets; they are
-// available as process.env here and get baked into the app via extra.
 const base = require('./app.json');
 
 module.exports = {
   expo: {
     ...base.expo,
     scheme: 'numo',
+
+    updates: {
+      url: "https://u.expo.dev/c3aa979b-0b57-48c4-b948-aca1b7089034",
+      checkAutomatically: "ON_LOAD"
+    },
+
+    runtimeVersion: {
+      policy: "appVersion"
+    },
+
     extra: {
       ...base.expo.extra,
       SUPABASE_URL: process.env.SUPABASE_URL ?? '',
