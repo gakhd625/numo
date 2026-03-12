@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store';
 import { useThemeStore } from '../store';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
