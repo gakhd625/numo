@@ -69,7 +69,7 @@ function MainTabs() {
           backgroundColor: theme.surface,
           borderTopColor: theme.border,
           borderTopWidth: 1,
-          height: 60,
+          height: 66,
           paddingBottom: 8,
           paddingTop: 8,
         },
@@ -77,12 +77,16 @@ function MainTabs() {
           fontSize: 12,
           fontWeight: '500',
         },
+        tabBarItemStyle: {
+          borderRadius: 12,
+          marginHorizontal: 4,
+        },
       })}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Transactions" component={TransactionsScreen} />
-      <Tab.Screen name="Categories" component={CategoriesScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Home' }} />
+      <Tab.Screen name="Transactions" component={TransactionsScreen} options={{ tabBarLabel: 'Records' }} />
+      <Tab.Screen name="Categories" component={CategoriesScreen} options={{ tabBarLabel: 'Tags' }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Me' }} />
     </Tab.Navigator>
   );
 }
