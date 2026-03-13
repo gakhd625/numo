@@ -17,10 +17,12 @@ import { useAuthStore, useTransactionStore, useThemeStore } from '../store';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 import { format } from 'date-fns';
 import CategoryIcon from '../components/CategoryIcon';
+import { PESO } from '../utils/currency';
+import { useSpendingLimitStore } from '../store/spendingLimitsStore';
 
 export default function AddTransactionScreen({ navigation }) {
   const { user } = useAuthStore();
-  const { categories, addTransaction, fetchCategories } = useTransactionStore();
+  const { categories, transactions, addTransaction, fetchCategories } = useTransactionStore();
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
   
@@ -31,6 +33,13 @@ export default function AddTransactionScreen({ navigation }) {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const handleAmountChange = (text) => {
+    const normalized = text.replace(/,/g, '').replace(/[^\d.]/g, '');
+    const [whole, ...decimalParts] = normalized.split('.');
+    const decimal = decimalParts.join('').slice(0, 2);
+    setAmount(decimalParts.length > 0 ? `${whole}.${decimal}` : whole);
+  };
 
   const categoriesByType = categories.filter((c) => (c.type || 'expense') === type);
   
@@ -47,6 +56,8 @@ export default function AddTransactionScreen({ navigation }) {
     }
   }, [type, categories, categoryId]);
   
+  const { checkLimits } = useSpendingLimitStore();
+
   const handleSubmit = async () => {
     if (!amount || !categoryId) {
       Alert.alert('Error', 'Please fill in amount and select a category');
@@ -58,7 +69,35 @@ export default function AddTransactionScreen({ navigation }) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
-    
+
+    // Check spending limits for expenses
+    if (type === 'expense') {
+      const warnings = checkLimits(transactions, amountNum);
+      if (warnings.length > 0) {
+        return new Promise((resolve) => {
+          Alert.alert(
+            '⚠️ Spending Limit Warning',
+            warnings.join('\n\n'),
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
+              {
+                text: 'Add Anyway',
+                style: 'destructive',
+                onPress: async () => {
+                  await doSubmit(amountNum);
+                  resolve();
+                },
+              },
+            ]
+          );
+        });
+      }
+    }
+
+    await doSubmit(amountNum);
+  };
+
+  const doSubmit = async (amountNum) => {
     setLoading(true);
     try {
       await addTransaction({
@@ -146,17 +185,18 @@ export default function AddTransactionScreen({ navigation }) {
           <Text style={[styles.amountLabel, { color: theme.textSecondary }]}>
             Amount
           </Text>
-          <View style={styles.amountInput}>
-            <Text style={[styles.currencySymbol, { color: theme.text }]}>$</Text>
+          <View style={[styles.amountInput, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.currencySymbol, { color: theme.text }]}>{PESO}</Text>
             <TextInput
               style={[styles.amountValue, { color: theme.text }]}
               value={amount}
-              onChangeText={setAmount}
+              onChangeText={handleAmountChange}
               keyboardType="decimal-pad"
               placeholder="0.00"
               placeholderTextColor={theme.textSecondary}
             />
           </View>
+          <Text style={[styles.amountHint, { color: theme.textSecondary }]}>Amounts are in Philippine Peso.</Text>
         </View>
         
         {/* Category */}
@@ -338,16 +378,25 @@ const styles = StyleSheet.create({
   amountInput: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    minHeight: 72,
+    minWidth: 220,
   },
   currencySymbol: {
     fontSize: fontSize.xxxl,
     fontWeight: fontWeight.bold,
-    marginRight: spacing.xs,
+    marginRight: spacing.sm,
   },
   amountValue: {
     fontSize: fontSize.xxxl,
     fontWeight: fontWeight.bold,
-    minWidth: 100,
+    minWidth: 120,
+  },
+  amountHint: {
+    marginTop: spacing.sm,
+    fontSize: fontSize.xs,
   },
   section: {
     marginBottom: spacing.lg,

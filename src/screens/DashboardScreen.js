@@ -14,7 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore, useTransactionStore, useThemeStore } from '../store';
 import CategoryIcon from '../components/CategoryIcon';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
+import { formatPesoAmount, formatSignedPesoAmount } from '../utils/currency';
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
+import { useSpendingLimitStore } from '../store/spendingLimitsStore';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -25,6 +27,8 @@ export default function DashboardScreen({ navigation }) {
   const theme = isDark ? darkTheme : lightTheme;
   
   const [refreshing, setRefreshing] = useState(false);
+  const { limits, fetchLimits, computeStatus } = useSpendingLimitStore();
+  const limitStatuses = computeStatus(transactions);
   
   useEffect(() => {
     if (user) {
@@ -35,6 +39,7 @@ export default function DashboardScreen({ navigation }) {
   const loadData = async () => {
     await fetchTransactions(user.id);
     await fetchCategories(user.id);
+    await fetchLimits(user.id);
   };
   
   const onRefresh = async () => {
@@ -130,6 +135,9 @@ export default function DashboardScreen({ navigation }) {
             <Text style={[styles.name, { color: theme.text }]}>
               {user?.email?.split('@')[0] || 'User'}
             </Text>
+            <Text style={[styles.helperText, { color: theme.textSecondary }]}>
+              Here is your latest financial snapshot
+            </Text>
           </View>
         </View>
         
@@ -143,7 +151,7 @@ export default function DashboardScreen({ navigation }) {
           >
             <Text style={styles.balanceLabel}>Total Balance</Text>
             <Text style={styles.balanceAmount}>
-              ${stats.balance.toFixed(2)}
+              {formatPesoAmount(stats.balance)}
             </Text>
             
             <View style={styles.balanceRow}>
@@ -154,7 +162,7 @@ export default function DashboardScreen({ navigation }) {
                 <View>
                   <Text style={styles.balanceItemLabel}>Income</Text>
                   <Text style={styles.balanceItemValue}>
-                    ${stats.totalIncome.toFixed(2)}
+                    {formatPesoAmount(stats.totalIncome)}
                   </Text>
                 </View>
               </View>
@@ -166,14 +174,83 @@ export default function DashboardScreen({ navigation }) {
                 <View>
                   <Text style={styles.balanceItemLabel}>Expenses</Text>
                   <Text style={styles.balanceItemValue}>
-                    ${stats.totalExpense.toFixed(2)}
+                    {formatPesoAmount(stats.totalExpense)}
                   </Text>
                 </View>
               </View>
             </View>
           </LinearGradient>
         </TouchableOpacity>
+
+        <View style={styles.quickActionsRow}>
+          <TouchableOpacity
+            style={[styles.quickActionCard, { backgroundColor: theme.surface, borderColor: theme.border }, theme.shadow]}
+            onPress={() => navigation.navigate('AddTransaction')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add-circle" size={20} color={theme.primary} />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Add</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickActionCard, { backgroundColor: theme.surface, borderColor: theme.border }, theme.shadow]}
+            onPress={() => navigation.navigate('Transactions')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="receipt" size={20} color={theme.primary} />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>History</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.quickActionCard, { backgroundColor: theme.surface, borderColor: theme.border }, theme.shadow]}
+            onPress={() => navigation.navigate('Categories')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="pricetags" size={20} color={theme.primary} />
+            <Text style={[styles.quickActionText, { color: theme.text }]}>Categories</Text>
+          </TouchableOpacity>
+        </View>
         
+        {/* Spending Limits Status */}
+        {limitStatuses.length > 0 && (
+          <TouchableOpacity
+            style={[styles.section, styles.card, { backgroundColor: theme.surface }, theme.shadow]}
+            onPress={() => navigation.navigate('SpendingLimits')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Spending Limits
+              </Text>
+              <Text style={[styles.seeAll, { color: theme.primary }]}>Manage</Text>
+            </View>
+            {limitStatuses.map((s) => {
+              const barColor = s.exceeded ? '#EF4444' : s.percent > 80 ? '#F59E0B' : theme.primary;
+              const periodLabel = s.period.charAt(0).toUpperCase() + s.period.slice(1);
+              return (
+                <View key={s.period} style={{ marginBottom: spacing.md }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: theme.text }}>
+                      {periodLabel}
+                    </Text>
+                    <Text style={{ fontSize: fontSize.xs, color: s.exceeded ? '#EF4444' : theme.textSecondary }}>
+                      {formatPesoAmount(s.spent)} / {formatPesoAmount(s.limit)}
+                    </Text>
+                  </View>
+                  <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.border, overflow: 'hidden' }}>
+                    <View
+                      style={{
+                        height: '100%',
+                        borderRadius: 3,
+                        width: `${Math.min(s.percent, 100)}%`,
+                        backgroundColor: barColor,
+                      }}
+                    />
+                  </View>
+                </View>
+              );
+            })}
+          </TouchableOpacity>
+        )}
+
         {/* Monthly Trend Chart */}
         {transactions.length > 0 && (
           <View style={[styles.section, styles.card, { backgroundColor: theme.surface }, theme.shadow]}>
@@ -291,8 +368,7 @@ export default function DashboardScreen({ navigation }) {
                       },
                     ]}
                   >
-                    {transaction.type === 'income' ? '+' : '-'}$
-                    {parseFloat(transaction.amount).toFixed(2)}
+                    {formatSignedPesoAmount(transaction.amount, transaction.type)}
                   </Text>
                   <Text style={[styles.transactionDate, { color: theme.textSecondary }]}>
                     {format(new Date(transaction.date), 'MMM dd')}
@@ -339,6 +415,10 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: fontSize.sm,
     marginBottom: spacing.xs,
+  },
+  helperText: {
+    fontSize: fontSize.xs,
+    marginTop: spacing.xs,
   },
   name: {
     fontSize: fontSize.xl,
@@ -393,6 +473,26 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: spacing.lg,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    marginHorizontal: spacing.lg,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  quickActionCard: {
+    flex: 1,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    height: 44,
+  },
+  quickActionText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   card: {
     marginHorizontal: spacing.lg,
