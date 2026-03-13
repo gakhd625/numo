@@ -10,20 +10,23 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore, useThemeStore, useTransactionStore } from '../store';
+import { useSpendingLimitStore } from '../store/spendingLimitsStore';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 
-export default function ProfileScreen() {
+export default function ProfileScreen({ navigation }) {
   const { user, signOut } = useAuthStore();
   const { clearData } = useTransactionStore();
   const { isDark, toggleTheme } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
   const [loggingOut, setLoggingOut] = useState(false);
+  const { clearLimits } = useSpendingLimitStore();
 
   const handleLogout = () => {
     setLoggingOut(true);
     // Clear state first so UI switches to Login immediately (no reliance on Alert callback).
     signOut();
     clearData();
+    clearLimits();
     setLoggingOut(false);
   };
   
@@ -95,6 +98,46 @@ export default function ProfileScreen() {
               thumbColor="#FFF"
             />
           </View>
+
+          {/* Divider */}
+          <View style={{ height: 1, backgroundColor: theme.border, marginVertical: spacing.sm }} />
+
+          {/* Spending Limits */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => navigation.navigate('SpendingLimits')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingLeft}>
+              <View
+                style={[
+                  styles.settingIcon,
+                  { backgroundColor: '#F59E0B20' },
+                ]}
+              >
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={20}
+                  color="#F59E0B"
+                />
+              </View>
+              <View>
+                <Text style={[styles.settingTitle, { color: theme.text }]}>
+                  Spending Limits
+                </Text>
+                <Text
+                  style={[styles.settingDescription, { color: theme.textSecondary }]}
+                >
+                  Daily, weekly, monthly caps
+                </Text>
+              </View>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={theme.textSecondary}
+            />
+          </TouchableOpacity>
         </View>
       </View>
       

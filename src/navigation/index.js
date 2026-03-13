@@ -14,6 +14,7 @@ import AddTransactionScreen from '../screens/AddTransactionScreen';
 import EditTransactionScreen from '../screens/EditTransactionScreen';
 import CategoriesScreen from '../screens/CategoriesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import SpendingLimitsScreen from '../screens/SpendingLimitsScreen';
 import LoadingScreen from '../screens/LoadingScreen';
 
 import { useAuthStore, useThemeStore } from '../store';
@@ -123,6 +124,11 @@ function MainStack() {
         name="EditTransaction"
         component={EditTransactionScreen}
         options={{ title: 'Edit Transaction' }}
+      />
+      <Stack.Screen
+        name="SpendingLimits"
+        component={SpendingLimitsScreen}
+        options={{ title: 'Spending Limits' }}
       />
     </Stack.Navigator>
   );

@@ -16,6 +16,7 @@ import CategoryIcon from '../components/CategoryIcon';
 import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } from '../config/theme';
 import { formatPesoAmount, formatSignedPesoAmount } from '../utils/currency';
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
+import { useSpendingLimitStore } from '../store/spendingLimitsStore';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -26,6 +27,8 @@ export default function DashboardScreen({ navigation }) {
   const theme = isDark ? darkTheme : lightTheme;
   
   const [refreshing, setRefreshing] = useState(false);
+  const { limits, fetchLimits, computeStatus } = useSpendingLimitStore();
+  const limitStatuses = computeStatus(transactions);
   
   useEffect(() => {
     if (user) {
@@ -36,6 +39,7 @@ export default function DashboardScreen({ navigation }) {
   const loadData = async () => {
     await fetchTransactions(user.id);
     await fetchCategories(user.id);
+    await fetchLimits(user.id);
   };
   
   const onRefresh = async () => {
@@ -205,6 +209,48 @@ export default function DashboardScreen({ navigation }) {
           </TouchableOpacity>
         </View>
         
+        {/* Spending Limits Status */}
+        {limitStatuses.length > 0 && (
+          <TouchableOpacity
+            style={[styles.section, styles.card, { backgroundColor: theme.surface }, theme.shadow]}
+            onPress={() => navigation.navigate('SpendingLimits')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                Spending Limits
+              </Text>
+              <Text style={[styles.seeAll, { color: theme.primary }]}>Manage</Text>
+            </View>
+            {limitStatuses.map((s) => {
+              const barColor = s.exceeded ? '#EF4444' : s.percent > 80 ? '#F59E0B' : theme.primary;
+              const periodLabel = s.period.charAt(0).toUpperCase() + s.period.slice(1);
+              return (
+                <View key={s.period} style={{ marginBottom: spacing.md }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <Text style={{ fontSize: fontSize.sm, fontWeight: fontWeight.medium, color: theme.text }}>
+                      {periodLabel}
+                    </Text>
+                    <Text style={{ fontSize: fontSize.xs, color: s.exceeded ? '#EF4444' : theme.textSecondary }}>
+                      {formatPesoAmount(s.spent)} / {formatPesoAmount(s.limit)}
+                    </Text>
+                  </View>
+                  <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.border, overflow: 'hidden' }}>
+                    <View
+                      style={{
+                        height: '100%',
+                        borderRadius: 3,
+                        width: `${Math.min(s.percent, 100)}%`,
+                        backgroundColor: barColor,
+                      }}
+                    />
+                  </View>
+                </View>
+              );
+            })}
+          </TouchableOpacity>
+        )}
+
         {/* Monthly Trend Chart */}
         {transactions.length > 0 && (
           <View style={[styles.section, styles.card, { backgroundColor: theme.surface }, theme.shadow]}>

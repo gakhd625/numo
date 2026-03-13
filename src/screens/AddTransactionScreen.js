@@ -18,10 +18,11 @@ import { lightTheme, darkTheme, spacing, borderRadius, fontSize, fontWeight } fr
 import { format } from 'date-fns';
 import CategoryIcon from '../components/CategoryIcon';
 import { PESO } from '../utils/currency';
+import { useSpendingLimitStore } from '../store/spendingLimitsStore';
 
 export default function AddTransactionScreen({ navigation }) {
   const { user } = useAuthStore();
-  const { categories, addTransaction, fetchCategories } = useTransactionStore();
+  const { categories, transactions, addTransaction, fetchCategories } = useTransactionStore();
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
   
@@ -55,6 +56,8 @@ export default function AddTransactionScreen({ navigation }) {
     }
   }, [type, categories, categoryId]);
   
+  const { checkLimits } = useSpendingLimitStore();
+
   const handleSubmit = async () => {
     if (!amount || !categoryId) {
       Alert.alert('Error', 'Please fill in amount and select a category');
@@ -66,7 +69,35 @@ export default function AddTransactionScreen({ navigation }) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
     }
-    
+
+    // Check spending limits for expenses
+    if (type === 'expense') {
+      const warnings = checkLimits(transactions, amountNum);
+      if (warnings.length > 0) {
+        return new Promise((resolve) => {
+          Alert.alert(
+            '⚠️ Spending Limit Warning',
+            warnings.join('\n\n'),
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
+              {
+                text: 'Add Anyway',
+                style: 'destructive',
+                onPress: async () => {
+                  await doSubmit(amountNum);
+                  resolve();
+                },
+              },
+            ]
+          );
+        });
+      }
+    }
+
+    await doSubmit(amountNum);
+  };
+
+  const doSubmit = async (amountNum) => {
     setLoading(true);
     try {
       await addTransaction({

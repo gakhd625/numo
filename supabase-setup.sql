@@ -165,6 +165,49 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user_type
   ON transactions(user_id, type);
 
 -- =====================================================
+-- TABLE: spending_limits (OPTIONAL)
+-- Stores user-defined daily/weekly/monthly spending caps.
+-- The app falls back to local AsyncStorage if this table
+-- does not exist, so it is safe to skip this section.
+-- =====================================================
+CREATE TABLE IF NOT EXISTS spending_limits (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  period TEXT NOT NULL CHECK (period IN ('daily', 'weekly', 'monthly')),
+  amount NUMERIC NOT NULL CHECK (amount > 0),
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE (user_id, period)
+);
+
+ALTER TABLE spending_limits ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own spending_limits" ON spending_limits;
+DROP POLICY IF EXISTS "Users can insert own spending_limits" ON spending_limits;
+DROP POLICY IF EXISTS "Users can update own spending_limits" ON spending_limits;
+DROP POLICY IF EXISTS "Users can delete own spending_limits" ON spending_limits;
+
+CREATE POLICY "Users can view own spending_limits"
+  ON spending_limits FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own spending_limits"
+  ON spending_limits FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own spending_limits"
+  ON spending_limits FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own spending_limits"
+  ON spending_limits FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_spending_limits_user_id
+  ON spending_limits(user_id);
+
+-- =====================================================
 -- FUNCTIONS: Automatic profile creation
 -- =====================================================
 
