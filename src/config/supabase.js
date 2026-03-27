@@ -47,7 +47,7 @@ export const supabase = isConfigured
         }),
         insert: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }) }) }),
         update: () => ({ eq: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }) }) }) }),
-        delete: () => ({ eq: () => Promise.resolve({ error: { message: 'Supabase not configured' } }) }),
+        delete: () => ({ eq: () => ({ select: () => Promise.resolve({ data: [], error: { message: 'Supabase not configured' } }) }) }),
       }),
     };
 

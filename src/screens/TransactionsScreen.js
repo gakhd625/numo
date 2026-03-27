@@ -19,20 +19,20 @@ export default function TransactionsScreen({ navigation }) {
   const { transactions, deleteTransaction, fetchTransactions } = useTransactionStore();
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
-  
+
   const [filterType, setFilterType] = useState('all'); // all, income, expense
-  
+
   useEffect(() => {
     if (user) {
       fetchTransactions(user.id);
     }
   }, [user]);
-  
+
   const filteredTransactions = transactions.filter((t) => {
     if (filterType === 'all') return true;
     return t.type === filterType;
   });
-  
+
   const handleDelete = (id) => {
     Alert.alert(
       'Delete Transaction',
@@ -53,11 +53,11 @@ export default function TransactionsScreen({ navigation }) {
       ]
     );
   };
-  
+
   const handleEdit = (transaction) => {
     navigation.navigate('EditTransaction', { transaction });
   };
-  
+
   const renderTransaction = ({ item }) => (
     <TouchableOpacity
       style={[styles.transactionItem, { backgroundColor: theme.surface }, theme.shadow]}
@@ -68,13 +68,13 @@ export default function TransactionsScreen({ navigation }) {
         <View
           style={[
             styles.categoryIcon,
-            { backgroundColor: item.categories?.color || theme.primary },
+            { backgroundColor: (item.categories?.color || theme.primary) + '18' },
           ]}
         >
           <CategoryIcon
             name={item.categories?.icon}
-            size={22}
-            color="#FFF"
+            size={20}
+            color={item.categories?.color || theme.primary}
           />
         </View>
         <View style={styles.transactionInfo}>
@@ -89,7 +89,7 @@ export default function TransactionsScreen({ navigation }) {
           </Text>
         </View>
       </View>
-      
+
       <View style={styles.transactionRight}>
         <Text
           style={[
@@ -105,7 +105,7 @@ export default function TransactionsScreen({ navigation }) {
       </View>
     </TouchableOpacity>
   );
-  
+
   const renderHiddenItem = ({ item }) => (
     <View style={styles.rowBack}>
       <TouchableOpacity
@@ -116,14 +116,14 @@ export default function TransactionsScreen({ navigation }) {
       </TouchableOpacity>
     </View>
   );
-  
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: theme.text }]}>Transactions</Text>
       </View>
-      
+
       {/* Filters */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
@@ -146,7 +146,7 @@ export default function TransactionsScreen({ navigation }) {
             All
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
             styles.filterButton,
@@ -167,7 +167,7 @@ export default function TransactionsScreen({ navigation }) {
             Income
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
             styles.filterButton,
@@ -189,7 +189,7 @@ export default function TransactionsScreen({ navigation }) {
           </Text>
         </TouchableOpacity>
       </View>
-      
+
       {/* Transactions List */}
       {filteredTransactions.length === 0 ? (
         <View style={styles.emptyState}>
@@ -276,9 +276,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.md,
+    width: 46,
+    height: 46,
+    borderRadius: borderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },

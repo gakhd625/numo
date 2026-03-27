@@ -13,6 +13,10 @@ import TransactionsScreen from '../screens/TransactionsScreen';
 import AddTransactionScreen from '../screens/AddTransactionScreen';
 import EditTransactionScreen from '../screens/EditTransactionScreen';
 import CategoriesScreen from '../screens/CategoriesScreen';
+import GoalsScreen from '../screens/GoalsScreen';
+import CreateGoalScreen from '../screens/CreateGoalScreen';
+import GoalDetailsScreen from '../screens/GoalDetailsScreen';
+import EditGoalScreen from '../screens/EditGoalScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LoadingScreen from '../screens/LoadingScreen';
 
@@ -25,7 +29,7 @@ const Tab = createBottomTabNavigator();
 function AuthStack() {
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
-  
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -43,44 +47,56 @@ function AuthStack() {
 function MainTabs() {
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
-  
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          
+
           if (route.name === 'Dashboard') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Transactions') {
             iconName = focused ? 'receipt' : 'receipt-outline';
+          } else if (route.name === 'Goals') {
+            iconName = focused ? 'flag' : 'flag-outline';
           } else if (route.name === 'Categories') {
             iconName = focused ? 'pricetags' : 'pricetags-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
           }
-          
+
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: {
           backgroundColor: theme.surface,
-          borderTopColor: theme.border,
-          borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          borderTopColor: 'transparent',
+          borderTopWidth: 0,
+          height: 70,
+          paddingBottom: 12,
+          paddingTop: 10,
+          marginHorizontal: 16,
+          marginBottom: 10,
+          borderRadius: 20,
+          position: 'absolute',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 10,
+          elevation: 8,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '500',
+          fontSize: 11,
+          fontWeight: '600',
         },
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Transactions" component={TransactionsScreen} />
+      <Tab.Screen name="Goals" component={GoalsScreen} />
       <Tab.Screen name="Categories" component={CategoriesScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -90,7 +106,7 @@ function MainTabs() {
 function MainStack() {
   const { isDark } = useThemeStore();
   const theme = isDark ? darkTheme : lightTheme;
-  
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -119,6 +135,21 @@ function MainStack() {
         name="EditTransaction"
         component={EditTransactionScreen}
         options={{ title: 'Edit Transaction' }}
+      />
+      <Stack.Screen
+        name="CreateGoal"
+        component={CreateGoalScreen}
+        options={{ title: 'Create Goal' }}
+      />
+      <Stack.Screen
+        name="GoalDetails"
+        component={GoalDetailsScreen}
+        options={{ title: 'Goal Details' }}
+      />
+      <Stack.Screen
+        name="EditGoal"
+        component={EditGoalScreen}
+        options={{ title: 'Edit Goal' }}
       />
     </Stack.Navigator>
   );
